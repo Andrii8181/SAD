@@ -1,11 +1,12 @@
-name: SAD Manual CI
+name: Build SAD EXE
 
 on:
-  workflow_dispatch:  # ⬅️ Дозволяє запуск вручну
+  release:
+    types: [created]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - name: 🔄 Клонування репозиторію
@@ -20,9 +21,15 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install pyinstaller
 
-    - name: ✅ Перевірка запуску Streamlit
+    - name: 🛠️ Створення EXE
       run: |
-        streamlit run sad_app.py --server.headless true &
-        sleep 10
-        curl -I http://localhost:8501 || echo "Streamlit не відповідає"
+        pyinstaller --onefile sad_app.py
+
+    - name: 📤 Завантаження EXE до релізу
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/sad_app.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
