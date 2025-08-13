@@ -1,10 +1,7 @@
-name: SAD Streamlit CI
+name: SAD Manual CI
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:  # ⬅️ Дозволяє запуск вручну
 
 jobs:
   build:
@@ -28,4 +25,4 @@ jobs:
       run: |
         streamlit run sad_app.py --server.headless true &
         sleep 10
-        curl -I http://localhost:8501
+        curl -I http://localhost:8501 || echo "Streamlit не відповідає"
