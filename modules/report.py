@@ -1,20 +1,18 @@
 from docx import Document
 from docx.shared import Inches
 import matplotlib.pyplot as plt
-import os
+import io
 
 def generate_report(df, value_col, factor_col, result):
     """
-    Генерує Word-документ зі звітом про статистичний аналіз.
-    Зберігає файл як 'SAD_Звіт.docx' у поточній директорії.
+    Генерує Word-звіт і повертає його як байти для завантаження.
     """
     doc = Document()
     doc.add_heading(f"Аналіз показника '{value_col}'", level=1)
-    doc.add_paragraph(f"Одиниці виміру: [вкажіть вручну]")
     doc.add_paragraph(f"Фактор: {factor_col}")
     doc.add_paragraph(" ")
 
-    # Таблиця з початковими даними
+    # Таблиця з даними
     doc.add_heading("Початкові дані", level=2)
     table = doc.add_table(rows=1, cols=len(df.columns))
     hdr_cells = table.rows[0].cells
@@ -27,19 +25,14 @@ def generate_report(df, value_col, factor_col, result):
 
     # Результати аналізу
     doc.add_heading("Результати аналізу", level=2)
-    if isinstance(result["table"], dict):
-        doc.add_paragraph("Результати ANOVA:")
-        for key, val in result["table"].items():
-            doc.add_paragraph(f"{key}: {val}")
-    else:
-        table2 = doc.add_table(rows=1, cols=len(result["table"].columns))
-        hdr2 = table2.rows[0].cells
-        for i, col in enumerate(result["table"].columns):
-            hdr2[i].text = col
-        for _, row in result["table"].iterrows():
-            row_cells = table2.add_row().cells
-            for i, val in enumerate(row):
-                row_cells[i].text = str(val)
+    table2 = doc.add_table(rows=1, cols=len(result["table"].columns))
+    hdr2 = table2.rows[0].cells
+    for i, col in enumerate(result["table"].columns):
+        hdr2[i].text = col
+    for _, row in result["table"].iterrows():
+        row_cells = table2.add_row().cells
+        for i, val in enumerate(row):
+            row_cells[i].text = str(val)
 
     # Сила впливу
     doc.add_heading("Сила впливу факторів (η²)", level=2)
@@ -51,18 +44,19 @@ def generate_report(df, value_col, factor_col, result):
         row_cells[0].text = str(row["Фактор"])
         row_cells[1].text = f"{row['η²']:.4f}"
 
-    # Збереження графіка
+    # Графік
     fig = plt.figure()
     ax = fig.add_subplot()
     df.boxplot(column=value_col, by=factor_col, ax=ax)
     plt.tight_layout()
-    graph_path = "sad_graph.png"
-    fig.savefig(graph_path)
-
-    # Додавання графіка
+    img_stream = io.BytesIO()
+    fig.savefig(img_stream, format='png')
+    img_stream.seek(0)
     doc.add_heading("Графік розподілу", level=2)
-    doc.add_picture(graph_path, width=Inches(5.5))
-    os.remove(graph_path)
+    doc.add_picture(img_stream, width=Inches(5.5))
 
-    # Збереження документа
-    doc.save("SAD_Звіт.docx")
+    # Збереження документа в пам’ять
+    doc_stream = io.BytesIO()
+    doc.save(doc_stream)
+    doc_stream.seek(0)
+    return doc_stream
