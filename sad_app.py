@@ -40,6 +40,7 @@ if uploaded_file:
 
             if st.button("🔬 Виконати аналіз"):
                 result = statistics.run_analysis(df, selected_value, selected_factor, method)
+
                 st.subheader("📊 Результати аналізу")
                 st.dataframe(result["table"])
 
@@ -50,9 +51,14 @@ if uploaded_file:
                 st.subheader("📐 Сила впливу факторів")
                 st.dataframe(result["effect_size"])
 
-                st.subheader("📥 Експорт звіту")
-                report.generate_report(df, selected_value, selected_factor, result)
-                st.success("✅ Звіт збережено як Word-документ")
+                st.subheader("📥 Скачати звіт")
+                doc_stream = report.generate_report(df, selected_value, selected_factor, result)
+                st.download_button(
+                    label="📥 Скачати звіт (.docx)",
+                    data=doc_stream,
+                    file_name="SAD_Звіт.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
 
 # Вікно про розробника
 developer.show_info()
